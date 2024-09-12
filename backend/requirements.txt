@@ -1,0 +1,14 @@
+flask
+flask_sqlalchemy
+pymysql
+cryptography
+flask-cors
+gunicorn==20.1.0
+google-generativeai
+google
+markdown
+flask_login
+flask_wtf
+wtforms
+flask_bcrypt
+werkzeug

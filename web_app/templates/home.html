@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="../static/styles/header.css" />
+    <link rel="stylesheet" href="../static/styles/home.css" />
+     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script type="text/javascript" src="../static/js/create.js"></script>
+    <title>TalkingNote</title>
+  </head>
+  <body>
+    <div class = "login-btn"><a href="{{url_for('login')}}">Login</a></div><br>
+    <div class = "register-btn"><a href="{{url_for('register')}}">Register</a></div><br>
+    <div class="container">
+		<!-- notes section -->
+		<div class="notes-section">
+        <header><dev class="hNote">TalkingNote</dev></header>
+        <div id="notes-container"></div>
+        <button class="add-note-btn">+</button>
+      </div>
+	  <!-- chat section -->
+	  <div class="chat-section">
+        <div class="chat-box">
+          <input type="text" class="chat-input" placeholder="Ask AI" />
+		  <button class="send-btn">send</button>
+        </div>
+      </div>
+    </div>
+    <!-- Modal Structure -->
+    <div id="noteModal" class="modal">
+      <div class="modal-content">
+        <span class="close-btn">&times;</span>
+        <h2>New Note</h2>
+        <form id="noteForm">
+          <label for="noteTitle">Title:</label>
+          <input type="text" id="noteTitle" name="noteTitle" required />
+          <label for="noteContent">Content:</label>
+          <textarea
+            id="noteContent"
+            name="noteContent"
+            rows="10"
+            required
+          ></textarea>
+          <button type="submit">Add Note</button>
+        </form>
+      </div>
+    </div>
+  </body>
+</html>

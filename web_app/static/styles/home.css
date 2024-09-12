@@ -1,0 +1,165 @@
+body {
+	font-family: Arial, sans-serif;
+	margin: 0;
+	padding: 0;
+	height: 100vh;
+	overflow: hidden;
+}
+.login-btn {
+	font-size: large;
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+}
+.container {
+	display: flex;
+	width: 100%;
+	height: 100%;
+}
+/* Notes section */
+.notes-section, .chat-section {
+	padding: 10px;
+}
+.notes-section {
+	width: 70%;
+	border-right: 1px solid #ccc;
+	overflow-y: auto;
+}
+.note{
+	border: 1px solid #ccc;
+	margin-bottom: 10px;
+	padding: 10px;
+	border-radius: 5px;
+}
+.note-title {
+	font-weight: bold;
+	margin-bottom: 5px;
+}
+.delete-note{
+	cursor: pointer;
+}
+/* chat section */
+.chat-section {
+	width: 30%;
+	display: flex;
+	flex-direction: column;
+	overflow-y: auto;
+	margin-bottom: 20px;
+}
+.chat-message {
+	border: 1px solid #ccc;
+	margin-bottom: 10px;
+    padding: 10px;
+    border-radius: 5px;
+}
+.chat-box {
+	display: flex;
+	align-items: center;
+}
+.chat-input {
+	flex: 1;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    margin-right: 10px;
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    bottom: 15px;
+    width: 22%;
+}
+.send-btn{
+	border-radius: 30px;
+    width: 65px;
+    height: 30px;
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    bottom: 19px;
+    right: 20px;
+    justify-content: center;
+    align-items: center;
+}
+/* Modal Styles */
+.add-note-btn {
+	position: absolute;
+	bottom: 20px;
+	left: 20px;
+	width: 50px;
+	height: 50px;
+	background-color: #007bff;
+	color: white;
+	border: none;
+	border-radius: 50%;
+	font-size: 30px;
+	cursor: pointer;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+}
+.modal {
+	display: none;
+	position: fixed;
+	z-index: 1;
+	left: 0;
+	top: 0;
+	width: 100%;
+	height: 100%;
+	overflow: auto;
+	background-color: rgb(0,0,0);
+	background-color: rgba(0,0,0,0.4);
+  }
+
+  .modal-content {
+	background-color: #fefefe;
+	margin: 15% auto;
+	padding: 20px;
+	border: 1px solid #888;
+	width: 80%;
+  }
+  
+  .close-btn {
+	color: #aaa;
+	float: right;
+	font-size: 28px;
+	font-weight: bold;
+  }
+  
+  .close-btn:hover,
+  .close-btn:focus {
+	color: black;
+	text-decoration: none;
+	cursor: pointer;
+  }
+  .delete-note{
+	display: grid;
+	justify-content: end;
+  }
+  /* Add Animation */
+  #noteForm {
+	display: flex;
+	flex-direction: column;
+  }
+  
+  #noteForm label {
+	margin-top: 10px;
+  }
+  
+  #noteForm input,
+  #noteForm textarea {
+	padding: 10px;
+	margin-top: 5px;
+	font-size: 16px;
+	width: 100%;
+	box-sizing: border-box;
+  }
+  
+  #noteForm button {
+	margin-top: 20px;
+	padding: 10px;
+	background-color: #007bff;
+	color: white;
+	border: none;
+	border-radius: 5px;
+	cursor: pointer;
+  }
