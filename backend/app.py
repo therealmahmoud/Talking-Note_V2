@@ -12,11 +12,14 @@ from wtforms.validators import InputRequired, Length, ValidationError
 from flask_bcrypt import bcrypt
 from werkzeug.security import generate_password_hash, check_password_hash
 from bson.objectid import ObjectId
+import os
+
 
 genai.configure(api_key='AIzaSyDCKpjPKsWbDdlBtnQItbSwxkeHlSUqefE')  # api key for AI model
 model = genai.GenerativeModel('gemini-1.5-flash') # assign default model
 chat = model.start_chat(history=[]) # create chat history
 app = Flask(__name__) # Flask
+app.config['SECRET_KEY'] = os.urandom(24)
 CORS(app)  # Enable CORS for all routes
 
 # MongoDB config

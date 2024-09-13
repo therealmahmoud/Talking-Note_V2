@@ -1,9 +1,9 @@
 from flask import Flask, render_template, redirect, url_for, request, session
 import requests
-
+import os
 
 app = Flask(__name__) # flask app intialization
-
+app.config['SECRET_KEY'] = os.urandom(24)
 
 
 @app.route('/')
