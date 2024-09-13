@@ -1,63 +1,44 @@
-from flask import Flask, make_response, jsonify, request, abort, session
-from flask_mongoalchemy import MongoAlchemy
+from flask import Flask, make_response, jsonify, request, abort, render_template, url_for, redirect, session
+from flask_pymongo import PyMongo
 import logging
 from flask_cors import CORS
+from datetime import datetime
+import google.generativeai as genai
+from markdown import markdown
 from flask_login import UserMixin
 from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, SubmitField
 from wtforms.validators import InputRequired, Length, ValidationError
 from flask_bcrypt import bcrypt
 from werkzeug.security import generate_password_hash, check_password_hash
+from bson.objectid import ObjectId
 
-# Flask app initialization
-app = Flask(__name__)
-CORS(app)
+genai.configure(api_key='AIzaSyDCKpjPKsWbDdlBtnQItbSwxkeHlSUqefE')  # api key for AI model
+model = genai.GenerativeModel('gemini-1.5-flash') # assign default model
+chat = model.start_chat(history=[]) # create chat history
+app = Flask(__name__) # Flask
+CORS(app)  # Enable CORS for all routes
 
-# MongoAlchemy configuration
-app.config['MONGOALCHEMY_DATABASE'] = 'flask_db'
-app.config['MONGOALCHEMY_CONNECTION_STRING'] = 'mongodb://mongodb:27017/flask_db'
+# MongoDB config
+app.config['MONGO_URI'] = 'mongodb://root:root_password@mongodb:27017/flask_db?authSource=admin'
+logging.basicConfig()  # logging
+mongo = PyMongo(app)
 
-# MongoAlchemy initialization
-db = MongoAlchemy(app)
 
-# Logging setup
-logging.basicConfig()
-logging.getLogger('mongoalchemy').setLevel(logging.INFO)
+@app.errorhandler(404)
+def not_found(error):
+    return make_response(jsonify({'error': "Not found"}), 404)
 
-# User model
-class User(db.Document, UserMixin):
-    username = db.StringField(max_length=20)
-    password_hash = db.StringField(max_length=80)
 
-    def set_password(self, password):
-        self.password_hash = generate_password_hash(password)
-
-    def check_password(self, password):
-        return check_password_hash(self.password_hash, password)
-
-# Notes model
-class Notes(db.Document):
-    title = db.StringField(max_length=45)
-    content = db.StringField()
-    created_at = db.DateTimeField()
-    updated_at = db.DateTimeField()
-
-    def save(self, *args, **kwargs):
-        self.updated_at = db.func.current_timestamp()
-        if not self.created_at:
-            self.created_at = db.func.current_timestamp()
-        super(Notes, self).save(*args, **kwargs)
-
-# Registration form
 class RegisterForm(FlaskForm):
     username = StringField(validators=[InputRequired(), Length(min=4, max=25)],
                            render_kw={"placeholder": "Username"})
     password = PasswordField(validators=[InputRequired(), Length(min=4, max=25)],
                            render_kw={"placeholder": "Password"})
     submit = SubmitField("Register")
-    
+
     def validate_username(self, username):
-        existing_user = User.query.filter(User.username == username.data).first()
+        existing_user = mongo.db.users.find_one({"username": username.data})
         if existing_user:
             raise ValidationError('Username already exists!')
 
@@ -69,21 +50,25 @@ class LoginForm(FlaskForm):
                            render_kw={"placeholder": "Password"})
     submit = SubmitField("Login")
 
-# Register route
+
 @app.route('/register', methods=['POST'])
 def register():
     data = request.get_json()
     username = data.get('username')
     password = data.get('password')
 
-    if User.query.filter(User.username == username).first():
+    if mongo.db.users.find_one({'username': username}):
         return jsonify({'message': 'User already exists'}), 400
 
-    new_user = User(username=username)
-    new_user.set_password(password)
-    new_user.save()
+    hashed_password = generate_password_hash(password)
+    new_user = {
+        'username': username,
+        'password': hashed_password
+    }
+    mongo.db.users.insert_one(new_user)
 
-    return jsonify({'message': 'User registered successfully'})
+    return jsonify({'message': 'User registered successfully'}), 201
+
 
 # Login route
 @app.route('/login', methods=['POST'])
@@ -92,14 +77,14 @@ def login():
     username = data.get('username')
     password = data.get('password')
 
-    user = User.query.filter(User.username == username).first()
+    user = mongo.db.users.find_one({'username': username})
 
-    if user and user.check_password(password):
-        session['user_id'] = user.mongo_id
+    if user and check_password_hash(user['password'], password):
+        session['user_id'] = str(user['_id'])
         return jsonify({'message': 'Login successful'}), 200
     return jsonify({'message': 'Invalid credentials'}), 401
 
-# Logout route
+
 @app.route('/logout')
 def logout():
     session.pop('user_id', None)
@@ -108,22 +93,36 @@ def logout():
 # Get all notes
 @app.route('/notes', methods=['GET'], strict_slashes=False)
 def get_all_notes():
-    all_notes = Notes.query.all()
-    notes_list = [{'notes_id': note.mongo_id, 'title': note.title, 'content': note.content,
-                   'created_at': note.created_at, 'updated_at': note.updated_at} for note in all_notes]
-    return jsonify(notes_list), 200
+    all_notes = mongo.db.notes.find()
+    lis = []
+    mynotes = "notes: "
+    i = 1
+    for note in all_notes:
+        list_notes = {
+            'notes_id': str(note['_id']),
+            'title': note['title'],
+            'content': note['content'],
+            'created_at': note['created_at'],
+            'updated_at': note['updated_at']
+        }
+        mynotes += str(i) + "- " + note['title'] + ': ' + note['content']
+        lis.append(list_notes)
+        i = i + 1
+    chat.send_message("i will send some notes to use it in future questions\n" + mynotes)
+    return jsonify(lis), 200
 
-# Get note by ID
-@app.route('/notes/<int:id>', methods=['GET'], strict_slashes=False)
+
+#not completed
+@app.route('/notes/<string:id>', methods=['GET'], strict_slashes=False)
 def get_notes_id(id):
-    note = Notes.query.filter(Notes.mongo_id == id).first()
+    note = mongo.db.notes.find_one({'_id': ObjectId(id)})
     if note:
         return jsonify({
-            'notes_id': note.mongo_id,
-            'title': note.title,
-            'content': note.content,
-            'created_at': note.created_at,
-            'updated_at': note.updated_at
+            'notes_id': str(note['_id']),
+            'title': note['title'],
+            'content': note['content'],
+            'created_at': note['created_at'],
+            'updated_at': note['updated_at']
         }), 200
     else:
         return abort(404)
@@ -131,37 +130,63 @@ def get_notes_id(id):
 # Add note
 @app.route('/notes', methods=['POST'], strict_slashes=False)
 def add_note():
+    """
+    Add a new note to the database.
+    Returns:
+    flask.Response: A JSON response with a success message
+    and HTTP status code 201 if the note is added successfully.
+    """
     data = request.get_json()
     title = data.get('title')
     content = data.get('content')
 
-    new_note = Notes(title=title, content=content)
-    new_note.save()
+    new_note = {
+        'title': title,
+        'content': content,
+        'created_at': datetime.utcnow(),
+        'updated_at': datetime.utcnow()
+    }
+
+    mongo.db.notes.insert_one(new_note)
     return jsonify({'message': 'Note added successfully!'}), 201
 
-# Delete note
-@app.route('/notes/<int:id>', methods=['DELETE'], strict_slashes=False)
+
+@app.route('/notes/<string:id>', methods=['DELETE'], strict_slashes=False)
 def delete_note(id):
-    note = Notes.query.filter(Notes.mongo_id == id).first()
+    note = mongo.db.notes.find_one({'_id': ObjectId(id)})
     if note:
-        note.remove()
+        mongo.db.notes.delete_one({'_id': ObjectId(id)})
         return jsonify({'message': 'Note deleted successfully!'}), 200
     else:
         return abort(404)
 
-# Update note
-@app.route('/notes/<int:id>', methods=['PUT'], strict_slashes=False)
+#not completed
+@app.route('/notes/<string:id>', methods=['PUT'], strict_slashes=False)
 def update_note(id):
-    note = Notes.query.filter(Notes.mongo_id == id).first()
+    note = mongo.db.notes.find_one({'_id': ObjectId(id)})
     if note:
         data = request.get_json()
         title = data.get('title')
         content = data.get('content')
-        note.title = title
-        note.content = content
-        note.save()
+
+        mongo.db.notes.update_one({'_id': ObjectId(id)}, {
+            '$set': {
+                'title': title,
+                'content': content,
+                'updated_at': mongo.db.func.current_timestamp()
+            }
+        })
         return jsonify({'message': 'Note updated successfully!'}), 200
     return abort(404)
 
-if _name_ == "_main_":
+
+@app.route('/notes/ai', methods=['POST'], strict_slashes=False)
+def ai_chat():
+    data = request.get_json()
+    prompt = data.get('prompt')
+    response = chat.send_message(prompt)
+    return jsonify({'AI': markdown(response.text)}), 201
+
+
+if __name__ == "__main__":
     app.run(host='0.0.0.0', port=6000, threaded=True)

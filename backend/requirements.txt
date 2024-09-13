@@ -1,6 +1,6 @@
 flask
-flask_sqlalchemy
-pymysql
+Flask-PyMongo
+pymongo
 cryptography
 flask-cors
 gunicorn==20.1.0

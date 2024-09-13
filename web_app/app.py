@@ -55,10 +55,10 @@ def register():
             'username': username,
             'password': password
         })
-        if response.status_code == 400:
+        if response.status_code == 201:
             return redirect('/login')
         else:
-            return 'Registration failed', 200
+            return 'Registration failed', 400
 
     return render_template('register.html')
 
