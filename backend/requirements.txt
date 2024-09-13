@@ -12,3 +12,5 @@ flask_wtf
 wtforms
 flask_bcrypt
 werkzeug
+flask_mongoalchemy
+pyOpenSSL

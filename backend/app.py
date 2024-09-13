@@ -12,11 +12,14 @@ from wtforms.validators import InputRequired, Length, ValidationError
 from flask_bcrypt import bcrypt
 from werkzeug.security import generate_password_hash, check_password_hash
 from bson.objectid import ObjectId
+import os
+
 
 genai.configure(api_key='AIzaSyDCKpjPKsWbDdlBtnQItbSwxkeHlSUqefE')  # api key for AI model
 model = genai.GenerativeModel('gemini-1.5-flash') # assign default model
 chat = model.start_chat(history=[]) # create chat history
 app = Flask(__name__) # Flask
+app.config['SECRET_KEY'] = os.urandom(24)
 CORS(app)  # Enable CORS for all routes
 
 # MongoDB config
@@ -42,6 +45,7 @@ class RegisterForm(FlaskForm):
         if existing_user:
             raise ValidationError('Username already exists!')
 
+# Login form
 class LoginForm(FlaskForm):
     username = StringField(validators=[InputRequired(), Length(min=4, max=25)],
                            render_kw={"placeholder": "Username"})
@@ -69,6 +73,7 @@ def register():
     return jsonify({'message': 'User registered successfully'}), 201
 
 
+# Login route
 @app.route('/login', methods=['POST'])
 def login():
     data = request.get_json()
@@ -88,7 +93,7 @@ def logout():
     session.pop('user_id', None)
     return jsonify({'message': 'Logged out successfully'}), 200
 
-
+# Get all notes
 @app.route('/notes', methods=['GET'], strict_slashes=False)
 def get_all_notes():
     all_notes = mongo.db.notes.find()
@@ -125,7 +130,7 @@ def get_notes_id(id):
     else:
         return abort(404)
 
-
+# Add note
 @app.route('/notes', methods=['POST'], strict_slashes=False)
 def add_note():
     """
