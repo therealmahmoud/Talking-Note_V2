@@ -5,8 +5,17 @@ import os
 app = Flask(__name__) # flask app intialization
 app.config['SECRET_KEY'] = os.urandom(24)
 
+def login_required(f):
+    def decorated_function(*args, **kwargs):
+        if 'user_id' not in session:
+            # If the user is not logged in, redirect to the login page
+            return redirect(url_for('login'))
+        return f(*args, **kwargs)
+    decorated_function.__name__ = f.__name__
+    return decorated_function
 
 @app.route('/')
+@login_required
 def home():
     """
     This function is a route handler for the root URL ('/').
@@ -20,15 +29,7 @@ def home():
     """
     return render_template('home.html')
 
-# @app.route('/login')
-# def login():
-#     return render_template('login.html')
-
-# @app.route('/register')
-# def register():
-#     return render_template('register.html')
-
-@app.route('/login', methods=['GET', 'POST'])
+@app.route('/login', methods=['GET', 'POST'], strict_slashes=False)
 def login():
     if request.method == 'POST':
         username = request.form['username']
