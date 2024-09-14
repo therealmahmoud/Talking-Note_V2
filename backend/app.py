@@ -108,7 +108,7 @@ def get_all_notes():
             'created_at': note['created_at'],
             'updated_at': note['updated_at']
         }
-        mynotes += str(i) + "- " + note['title'] + ': ' + note['content']
+        mynotes += str(i) + "- " + note['title'] + ': "' + note['content'] + '"'
         lis.append(list_notes)
         i = i + 1
     chat.send_message("i will send some notes to use it in future questions\n" + mynotes)
