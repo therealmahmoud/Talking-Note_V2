@@ -137,32 +137,33 @@ function outsideClick(event) {
  * @see {@link closeModal} for closing the modal.
  */
 async function addNote(event) {
-  event.preventDefault();
-  const noteTitle = $("#noteTitle").val();
-  const noteContent = $("#noteContent").val();
-
-  try {
-    const response = await fetch("http://localhost:3000/notes", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        title: noteTitle,
-        content: noteContent,
-      }),
-    });
-
-    if (response.ok) {
-      fetchNotes(); // Refresh notes
-      closeModal(); // Close modal
-    } else {
-      console.error("Error adding note");
+    event.preventDefault();
+    const noteTitle = $("#noteTitle").val();
+    const noteContent = $("#noteContent").val();
+  
+    try {
+      const response = await fetch("http://localhost:3000/notes", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",  // Include cookies in the request
+        body: JSON.stringify({
+          title: noteTitle,
+          content: noteContent,
+        }),
+      });
+  
+      if (response.ok) {
+        fetchNotes(); // Refresh notes
+        closeModal(); // Close modal
+      } else {
+        console.error("Error adding note:", response.statusText);
+      }
+    } catch (error) {
+      console.error("Error adding note:", error);
     }
-  } catch (error) {
-    console.error("Error adding note:", error);
   }
-}
 
 /**
  * Handles the click event for the AI chat button.

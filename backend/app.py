@@ -2,7 +2,7 @@ from flask import Flask, make_response, jsonify, request, abort, render_template
 from flask_pymongo import PyMongo
 import logging
 from flask_cors import CORS
-from datetime import datetime
+from datetime import datetime, timedelta
 import google.generativeai as genai
 from markdown import markdown
 from flask_login import UserMixin
@@ -14,13 +14,17 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from bson.objectid import ObjectId
 import os
 
-
 genai.configure(api_key='AIzaSyDCKpjPKsWbDdlBtnQItbSwxkeHlSUqefE')  # api key for AI model
 model = genai.GenerativeModel('gemini-1.5-flash') # assign default model
 chat = model.start_chat(history=[]) # create chat history
 app = Flask(__name__) # Flask
-app.config['SECRET_KEY'] = os.urandom(24)
-CORS(app)  # Enable CORS for all routes
+app.config['SECRET_KEY'] = "hamada"
+
+app.config['SESSION_COOKIE_SECURE'] = False  # Set to True in production
+app.config['SESSION_COOKIE_HTTPONLY'] = True
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=1)  # 1 hour
+
+CORS(app, supports_credentials=True, resources={r"/*": {"origins": "*"}})  # Enable CORS for all routes
 
 # MongoDB config
 app.config['MONGO_URI'] = 'mongodb://root:root_password@mongodb:27017/flask_db?authSource=admin'
@@ -84,6 +88,7 @@ def login():
 
     if user and check_password_hash(user['password'], password):
         session['user_id'] = str(user['_id'])
+        print(f"session user_id {session['user_id']} and _id {str(user['_id'])}")
         return jsonify({'message': 'Login successful'}), 200
     return jsonify({'message': 'Invalid credentials'}), 401
 
@@ -139,17 +144,21 @@ def add_note():
     flask.Response: A JSON response with a success message
     and HTTP status code 201 if the note is added successfully.
     """
+    if 'user_id' not in session:
+        return jsonify({'error': 'User not logged in!'}), 401
+
     data = request.get_json()
     title = data.get('title')
     content = data.get('content')
 
     new_note = {
+        'user_id': ObjectId(session['user_id']),
         'title': title,
         'content': content,
         'created_at': datetime.utcnow(),
         'updated_at': datetime.utcnow()
     }
-
+    print(f"this is user_id from note {new_note['user_id']}")
     mongo.db.notes.insert_one(new_note)
     return jsonify({'message': 'Note added successfully!'}), 201
 
