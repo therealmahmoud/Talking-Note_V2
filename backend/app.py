@@ -99,7 +99,12 @@ def logout():
 # Get all notes
 @app.route('/notes', methods=['GET'], strict_slashes=False)
 def get_all_notes():
-    all_notes = mongo.db.notes.find()
+    user_id = ObjectId(session['user_id'])
+
+    if not user_id:
+        return jsonify({'error': 'User not logged in!'}), 401
+
+    all_notes = mongo.db.notes.find({'user_id': user_id})
     lis = []
     mynotes = "notes: "
     i = 1
@@ -156,7 +161,6 @@ def add_note():
         'created_at': datetime.utcnow(),
         'updated_at': datetime.utcnow()
     }
-    print(f"this is user_id from note {new_note['user_id']}")
     mongo.db.notes.insert_one(new_note)
     return jsonify({'message': 'Note added successfully!'}), 201
 

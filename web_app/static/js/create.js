@@ -40,33 +40,40 @@ $(document).ready(function () {
  * @returns {Promise<void>} - A promise that resolves when the notes are fetched and displayed.
  */
 async function fetchNotes() {
-  try {
-    const response = await fetch("http://localhost:3000/notes");
-    const notes = await response.json();
-    const notesContainer = $("#notes-container");
-    notesContainer.empty(); // Clear existing notes
-
-	// Iterate over the notes and create a note element for each one
-    notes.forEach((note) => {
-      const noteElement = $(`
-        <div class="note">
-          <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
-          <div class="note-title">${note.title}</div>
-          <div class="note-content">${note.content}</div>
-          <div class="note-actions">
-            <span class="delete-note"><i class="fa fa-trash-o" style="font-size:30px" data-id="${note.notes_id}"></i></span>
+    try {
+      const response = await fetch("http://localhost:3000/notes", {
+        method: 'GET', 
+        credentials: 'include'
+      });
+  
+      if (!response.ok) {
+        throw new Error('Network response was not ok');
+      }
+  
+      const notes = await response.json();
+      const notesContainer = $("#notes-container");
+      notesContainer.empty(); 
+  
+      notes.forEach((note) => {
+        const noteElement = $(`
+          <div class="note">
+            <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+            <div class="note-title">${note.title}</div>
+            <div class="note-content">${note.content}</div>
+            <div class="note-actions">
+              <span class="delete-note"><i class="fa fa-trash-o" style="font-size:30px" data-id="${note.notes_id}"></i></span>
+            </div>
           </div>
-        </div>
-      `);
-      notesContainer.append(noteElement);
-    });
-
-    // Add event listeners to the delete icons
-    $(".delete-note i").on("click", deleteNote);
-  } catch (error) {
-    console.error("Error fetching notes:", error);
+        `);
+        notesContainer.append(noteElement);
+      });
+  
+      // Add event listeners to the delete icons
+      $(".delete-note i").on("click", deleteNote);
+    } catch (error) {
+      console.error("Error fetching notes:", error);
+    }
   }
-}
 
 /**
  * Opens the modal for adding a new note.
