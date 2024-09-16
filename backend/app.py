@@ -1,44 +1,58 @@
-from flask import Flask, make_response, jsonify, request, abort, render_template, url_for, redirect, session
+from flask import Flask, make_response, jsonify, request, abort, session
 from flask_pymongo import PyMongo
 import logging
 from flask_cors import CORS
 from datetime import datetime, timedelta
 import google.generativeai as genai
 from markdown import markdown
-from flask_login import UserMixin
-from flask_wtf import FlaskForm
-from wtforms import StringField, PasswordField, SubmitField
-from wtforms.validators import InputRequired, Length, ValidationError
-from flask_bcrypt import bcrypt
 from werkzeug.security import generate_password_hash, check_password_hash
 from bson.objectid import ObjectId
 import os
+
 
 genai.configure(api_key='AIzaSyDCKpjPKsWbDdlBtnQItbSwxkeHlSUqefE')  # api key for AI model
 model = genai.GenerativeModel('gemini-1.5-flash') # assign default model
 chat = model.start_chat(history=[]) # create chat history
 app = Flask(__name__) # Flask
-app.config['SECRET_KEY'] = "hamada"
+app.config['SECRET_KEY'] = "hamada" # setting the secret key
 
-app.config['SESSION_COOKIE_SECURE'] = False  # Set to True in production
-app.config['SESSION_COOKIE_HTTPONLY'] = True
-app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=1)  # 1 hour
+app.config['SESSION_COOKIE_SECURE'] = False
+app.config['SESSION_COOKIE_HTTPONLY'] = True # works in http only while our development
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=1) # session ends automatically after one hour
 
 CORS(app, supports_credentials=True, resources={r"/*": {"origins": "*"}})  # Enable CORS for all routes
 
 # MongoDB config
 app.config['MONGO_URI'] = 'mongodb://root:root_password@mongodb:27017/flask_db?authSource=admin'
-logging.basicConfig()  # logging
-mongo = PyMongo(app)
+logging.basicConfig()  # logging configuration
+mongo = PyMongo(app) # initialize mongo instance from pymongo
 
 
 @app.errorhandler(404)
 def not_found(error):
+    """
+    Error handler for 404 Not Found error.
+
+    Returns:
+    flask.Response: A JSON response with a 'error' key containing
+    the custom error message and HTTP status code 404.
+    """
     return make_response(jsonify({'error': "Not found"}), 404)
 
 
 @app.route('/register', methods=['POST'])
 def register():
+    """
+    Registers a new user in the database.
+
+    Returns:
+    flask.Response: A JSON response with a success message or
+    an error message and HTTP status code.
+    - If the username already exists, returns a JSON response with
+    'User already exists' message and HTTP status code 400.
+    - If the user is successfully registered, returns a JSON response with
+    'User registered successfully' message and HTTP status code 201.
+    """
     data = request.get_json()
     username = data.get('username')
     password = data.get('password')
@@ -59,6 +73,15 @@ def register():
 # Login route
 @app.route('/login', methods=['POST'])
 def login():
+    """
+    Authenticates a user by verifying their username and password.
+
+    Returns:
+    - flask.Response: A JSON response with a success message and user ID if the
+    credentials are valid.
+    Returns a JSON response with an error message if the credentials are invalid.
+    HTTP status code 200 for successful login, 401 for invalid credentials.
+    """
     data = request.get_json()
     username = data.get('username')
     password = data.get('password')
@@ -72,12 +95,29 @@ def login():
 
 @app.route('/logout')
 def logout():
+    """
+    Logs out the current user by removing the 'user_id' from the session.
+
+    Returns:
+    flask.Response: A JSON response with a success message and HTTP status code 200.
+    The response contains the following keys:
+    - 'message': A string indicating the success of the logout operation.
+    """
     session.pop('user_id', None)
     return jsonify({'message': 'Logged out successfully'}), 200
 
-# Get all notes
+
 @app.route('/notes', methods=['GET'], strict_slashes=False)
 def get_all_notes():
+    """
+    Retrieves all notes for the currently logged-in user.
+    
+    Returns:
+    flask.Response: A JSON response containing a list of all notes for the user.
+    Each note is represented as a dictionary with the following keys:
+    If the user is not logged in, returns a JSON response with an error message
+    and HTTP status code 401.
+    """
     user_id = ObjectId(session['user_id'])
 
     if not user_id:
@@ -102,26 +142,11 @@ def get_all_notes():
     return jsonify(lis), 200
 
 
-#not completed
-@app.route('/notes/<string:id>', methods=['GET'], strict_slashes=False)
-def get_notes_id(id):
-    note = mongo.db.notes.find_one({'_id': ObjectId(id)})
-    if note:
-        return jsonify({
-            'notes_id': str(note['_id']),
-            'title': note['title'],
-            'content': note['content'],
-            'created_at': note['created_at'],
-            'updated_at': note['updated_at']
-        }), 200
-    else:
-        return abort(404)
-
-# Add note
 @app.route('/notes', methods=['POST'], strict_slashes=False)
 def add_note():
     """
     Add a new note to the database.
+
     Returns:
     flask.Response: A JSON response with a success message
     and HTTP status code 201 if the note is added successfully.
@@ -146,6 +171,14 @@ def add_note():
 
 @app.route('/notes/<string:id>', methods=['DELETE'], strict_slashes=False)
 def delete_note(id):
+    """
+    Deletes a note from the database based on the provided note ID.
+
+    Returns:
+    flask.Response: A JSON response with a success message and HTTP status code 200
+    if the note is deleted successfully. If the note with the given ID does not exist,
+    returns a 404 Not Found error.
+    """
     note = mongo.db.notes.find_one({'_id': ObjectId(id)})
     if note:
         mongo.db.notes.delete_one({'_id': ObjectId(id)})
@@ -153,28 +186,24 @@ def delete_note(id):
     else:
         return abort(404)
 
-#not completed
-@app.route('/notes/<string:id>', methods=['PUT'], strict_slashes=False)
-def update_note(id):
-    note = mongo.db.notes.find_one({'_id': ObjectId(id)})
-    if note:
-        data = request.get_json()
-        title = data.get('title')
-        content = data.get('content')
-
-        mongo.db.notes.update_one({'_id': ObjectId(id)}, {
-            '$set': {
-                'title': title,
-                'content': content,
-                'updated_at': mongo.db.func.current_timestamp()
-            }
-        })
-        return jsonify({'message': 'Note updated successfully!'}), 200
-    return abort(404)
-
 
 @app.route('/notes/ai', methods=['POST'], strict_slashes=False)
 def ai_chat():
+    """
+    This function handles the AI chat functionality. 
+    It receives a prompt from the client,
+    sends it to the AI model for processing, and returns
+    the AI's response in markdown format.
+
+    Returns:
+    - flask.Response: A JSON response containing
+    the AI's response in markdown format.
+      The response has the following structure:
+      {
+          'AI': str  (The AI's response in markdown format)
+      }
+      HTTP status code 201 is returned if the operation is successful.
+    """
     data = request.get_json()
     prompt = data.get('prompt')
     response = chat.send_message(prompt)
