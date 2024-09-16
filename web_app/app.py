@@ -3,7 +3,7 @@ import requests
 import os
 
 app = Flask(__name__) # flask app intialization
-app.config['SECRET_KEY'] = os.urandom(24)
+app.config['SECRET_KEY'] = "hamada"
 
 def login_required(f):
     def decorated_function(*args, **kwargs):
@@ -14,7 +14,7 @@ def login_required(f):
     decorated_function.__name__ = f.__name__
     return decorated_function
 
-@app.route('/')
+@app.route('/', strict_slashes=False)
 @login_required
 def home():
     """
@@ -39,12 +39,18 @@ def login():
             'password': password
         })
         if response.status_code == 200:
-            session['user_id'] = response.json().get('user_id')
+            session['user_id'] = response.json()['user_id']
             return redirect('/')
         else:
             return 'Login failed', 401
 
     return render_template('login.html')
+
+@app.route('/logout', methods=['GET'], strict_slashes=False)
+def logout():
+    response = requests.get('http://backend:6000/logout')
+    if response.status_code == 200:
+        return redirect('/login')
 
 # Route for Register
 @app.route('/register', methods=['GET', 'POST'])
