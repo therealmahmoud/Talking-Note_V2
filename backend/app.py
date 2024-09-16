@@ -10,11 +10,11 @@ from bson.objectid import ObjectId
 import os
 
 
-genai.configure(api_key='AIzaSyDCKpjPKsWbDdlBtnQItbSwxkeHlSUqefE')  # api key for AI model
+genai.configure(api_key=os.getenv('api_key'))  # api key for AI model
 model = genai.GenerativeModel('gemini-1.5-flash') # assign default model
 chat = model.start_chat(history=[]) # create chat history
 app = Flask(__name__) # Flask
-app.config['SECRET_KEY'] = "hamada" # setting the secret key
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY') # setting the secret key
 
 app.config['SESSION_COOKIE_SECURE'] = False
 app.config['SESSION_COOKIE_HTTPONLY'] = True # works in http only while our development
@@ -23,7 +23,7 @@ app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=1) # session ends aut
 CORS(app, supports_credentials=True, resources={r"/*": {"origins": "*"}})  # Enable CORS for all routes
 
 # MongoDB config
-app.config['MONGO_URI'] = 'mongodb://root:root_password@mongodb:27017/flask_db?authSource=admin'
+app.config['MONGO_URI'] = os.getenv('MONGO_URI')
 logging.basicConfig()  # logging configuration
 mongo = PyMongo(app) # initialize mongo instance from pymongo
 
@@ -138,7 +138,9 @@ def get_all_notes():
         mynotes += str(i) + "- " + note['title'] + ': "' + note['content'] + '"'
         lis.append(list_notes)
         i = i + 1
-    chat.send_message("i will send some notes to use it in future questions\n" + mynotes)
+    chat.send_message("i will send some notes to use it in future questions\n" +
+                      f"this is my user id {user_id} link this notes with it and\
+                          don't show it on a user with different user id" + mynotes)
     return jsonify(lis), 200
 
 
@@ -206,7 +208,7 @@ def ai_chat():
     """
     data = request.get_json()
     prompt = data.get('prompt')
-    response = chat.send_message(prompt)
+    response = chat.send_message(session['user_id'] + prompt)
     return jsonify({'AI': markdown(response.text)}), 201
 
 
