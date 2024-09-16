@@ -136,6 +136,7 @@ async function ai_chat(event) {
         headers: {
             "Content-Type": "application/json",
         },
+        credentials: "include",
         body: JSON.stringify({
             prompt: prompt,
         }),

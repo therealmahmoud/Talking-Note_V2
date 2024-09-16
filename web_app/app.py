@@ -3,7 +3,7 @@ import requests
 import os
 
 app = Flask(__name__) # flask app intialization
-app.config['SECRET_KEY'] = "hamada"
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
 
 def login_required(f):
     """
