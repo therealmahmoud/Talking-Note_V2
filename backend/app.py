@@ -1,4 +1,4 @@
-from flask import Flask, make_response, jsonify, request, abort, render_template, url_for, redirect, session
+from flask import Flask, make_response, jsonify, request, abort, render_template, url_for, redirect
 from flask_sqlalchemy import SQLAlchemy
 import logging
 from flask_cors import CORS
@@ -10,6 +10,7 @@ from wtforms import StringField, PasswordField, SubmitField
 from wtforms.validators import InputRequired, Length, ValidationError
 from flask_bcrypt import bcrypt
 from werkzeug.security import generate_password_hash, check_password_hash
+import os
 
 
 genai.configure(api_key='AIzaSyDCKpjPKsWbDdlBtnQItbSwxkeHlSUqefE')  # api key for AI model
@@ -44,19 +45,21 @@ def not_found(error):
 class User(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(20), nullable=False, unique=True)
-    password = db.Column(db.String(80), nullable=False)
+    password = db.Column(db.String(400), nullable=False)
 
     def set_password(self, password):
-        self.password_hash = generate_password_hash(password)
+        # Storing the password hash in the 'password' column
+        self.password = generate_password_hash(password)
 
     def check_password(self, password):
-        return check_password_hash(self.password_hash, password)
+        # Checking the password against the stored password hash
+        return check_password_hash(self.password, password)
 
 class RegisterForm(FlaskForm):
     username = StringField(validators=[InputRequired(), Length(min=4, max=25)],
                            render_kw={"placeholder": "Username"})
-    password = PasswordField(validators=[InputRequired(), Length(min=4, max=25)],
-                           render_kw={"placeholder": "Username"})
+    password = PasswordField(validators=[InputRequired(), Length(min=4, max=100)],
+                           render_kw={"placeholder": "Password"})
     submit = SubmitField("Register")
     
     def validate_username(self, username):
@@ -68,7 +71,7 @@ class LoginForm(FlaskForm):
     username = StringField(validators=[InputRequired(), Length(min=4, max=25)],
                            render_kw={"placeholder": "Username"})
     password = PasswordField(validators=[InputRequired(), Length(min=4, max=25)],
-                           render_kw={"placeholder": "Username"})
+                           render_kw={"placeholder": "Password"})
     submit = SubmitField("Login")
 
 
@@ -109,7 +112,7 @@ def register():
     db.session.add(new_user)
     db.session.commit()
 
-    return jsonify({'message': 'User registered successfully'})
+    return jsonify({'message': 'User registered successfully'}), 201
 
 @app.route('/login', methods=['POST'])
 def login():
@@ -120,13 +123,11 @@ def login():
     user = User.query.filter_by(username=username).first()
 
     if user and user.check_password(password):
-        session['user_id'] = user.id
         return jsonify({'message': 'Login successful'}), 200
     return jsonify({'message': 'Invalid credentials'}), 401
 
 @app.route('/logout')
 def logout():
-    session.pop('user_id', None)
     return jsonify({'message': 'Logged out successfully'}), 200
 
 
@@ -152,7 +153,7 @@ def get_all_notes():
                 'created_at': note.created_at,
                 'updated_at': note.updated_at
             }
-        mynotes += str(i) + "- " + note.title + ': ' + note.content
+        mynotes += str(i) + "- " + note.title + ': "' + note.content + '"'
         lis.append(list_notes)
         i = i + 1
     chat.send_message("i will send some notes to use it in future questions\n" + mynotes)

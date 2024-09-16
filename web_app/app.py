@@ -38,7 +38,6 @@ def login():
             'password': password
         })
         if response.status_code == 200:
-            session['user_id'] = response.json().get('user_id')
             return redirect('/')
         else:
             return 'Login failed', 401
@@ -55,10 +54,10 @@ def register():
             'username': username,
             'password': password
         })
-        if response.status_code == 400:
+        if response.status_code == 201:
             return redirect('/login')
         else:
-            return 'Registration failed', 200
+            return 'Registration failed', 400
 
     return render_template('register.html')
 
