@@ -1,43 +1,32 @@
 let modal;
 
+
 /**
- * This function initializes the event listeners for the note-taking application.
- * It sets up the click events for the add note button, close button, outside click,
- * form submission, and AI chat button. It also calls the fetchNotes function to
- * retrieve and display existing notes.
+ * Initializes the note-taking application by setting up event
+ * listeners and fetching existing notes.
  */
 $(document).ready(function () {
-  // Initialize the modal element
   modal = $("#noteModal");
 
-  // Initialize the add note button, close button, and AI chat button
   var btn = $(".add-note-btn");
   var closeBtn = $(".close-btn");
   var sendBtn = $(".send-btn");
 
-  // Add click event listener for AI chat button
   sendBtn.on("click", ai_chat);
 
-  // Add click event listener for add note button
   btn.on("click", openModal);
 
-  // Add click event listener for close button
   closeBtn.on("click", closeModal);
 
-  // Add click event listener for outside click
   $(window).on("click", outsideClick);
 
-  // Add click event listener for form submission
   $("#noteForm").on("submit", addNote);
 
-  // Call fetchNotes function to retrieve and display existing notes
   fetchNotes();
 });
 
 /**
- * Fetches notes from the server and displays them in the UI.
- *
- * @returns {Promise<void>} - A promise that resolves when the notes are fetched and displayed.
+* Fetches notes from the server and displays them in the application.
  */
 async function fetchNotes() {
     try {
@@ -68,7 +57,6 @@ async function fetchNotes() {
         notesContainer.append(noteElement);
       });
   
-      // Add event listeners to the delete icons
       $(".delete-note i").on("click", deleteNote);
     } catch (error) {
       console.error("Error fetching notes:", error);
@@ -77,16 +65,6 @@ async function fetchNotes() {
 
 /**
  * Opens the modal for adding a new note.
- *
- * @function openModal
- * @returns {void} - This function does not return any value.
- *
- * @example
- * openModal();
- *
- * @see {@link closeModal} for closing the modal.
- * @see {@link fetchNotes} for fetching existing notes.
- * @see {@link addNote} for adding a new note.
  */
 function openModal() {
   modal.show();
@@ -94,16 +72,6 @@ function openModal() {
 
 /**
  * Closes the modal for adding a new note.
- *
- * @function closeModal
- * @returns {void} - This function does not return any value.
- *
- * @example
- * closeModal();
- *
- * @see {@link openModal} for opening the modal.
- * @see {@link fetchNotes} for fetching existing notes.
- * @see {@link addNote} for adding a new note.
  */
 function closeModal() {
 	modal.hide();
@@ -114,15 +82,6 @@ function closeModal() {
 
 /**
  * Handles the click event for closing the modal when clicking outside of it.
- *
- * @param {Event} event - The click event object.
- * @returns {void} - This function does not return any value.
- *
- * @example
- * outsideClick(event);
- *
- * @see {@link openModal} for opening the modal.
- * @see {@link closeModal} for closing the modal.
  */
 function outsideClick(event) {
   if ($(event.target).is(modal)) {
@@ -132,16 +91,6 @@ function outsideClick(event) {
 
 /**
  * Handles the form submission event for adding a new note.
- *
- * @function addNote
- * @param {Event} event - The form submission event object.
- * @returns {Promise<void>} - A promise that resolves when the note is added successfully.
- *
- * @example
- * addNote(event);
- *
- * @see {@link fetchNotes} for fetching existing notes.
- * @see {@link closeModal} for closing the modal.
  */
 async function addNote(event) {
     event.preventDefault();
@@ -154,7 +103,7 @@ async function addNote(event) {
         headers: {
           "Content-Type": "application/json",
         },
-        credentials: "include",  // Include cookies in the request
+        credentials: "include",
         body: JSON.stringify({
           title: noteTitle,
           content: noteContent,
@@ -162,8 +111,8 @@ async function addNote(event) {
       });
   
       if (response.ok) {
-        fetchNotes(); // Refresh notes
-        closeModal(); // Close modal
+        fetchNotes();
+        closeModal();
       } else {
         console.error("Error adding note:", response.statusText);
       }
@@ -174,17 +123,8 @@ async function addNote(event) {
 
 /**
  * Handles the click event for the AI chat button.
- * It sends a prompt to the AI server, fetches the response, and displays it in the chat section.
- *
- * @param {Event} event - The click event object.
- * @returns {Promise<void>} - A promise that resolves when the AI response is received and displayed.
- *
- * @example
- * ai_chat(event);
- *
- * @see {@link fetchNotes} for fetching existing notes.
- * @see {@link addNote} for adding a new note.
- * @see {@link deleteNote} for deleting a note.
+ * It sends a prompt to the AI server, fetches the response,
+ * and displays it in the chat section.
  */
 async function ai_chat(event) {
   event.preventDefault();
@@ -221,17 +161,6 @@ async function ai_chat(event) {
 
 /**
  * Deletes a note from the server and refreshes the notes list.
- *
- * @function deleteNote
- * @param {Event} event - The click event object.
- * @returns {Promise<void>} - A promise that resolves when the note is deleted successfully.
- *
- * @example
- * deleteNote(event);
- *
- * @see {@link fetchNotes} for fetching existing notes.
- * @see {@link addNote} for adding a new note.
- * @see {@link ai_chat} for handling AI chat functionality.
  */
 async function deleteNote(event) {
   const noteId = $(event.target).data("id");
@@ -242,7 +171,7 @@ async function deleteNote(event) {
     });
 
     if (response.ok) {
-      fetchNotes(); // Refresh notes
+      fetchNotes();
     } else {
       console.error("Error deleting note");
     }
