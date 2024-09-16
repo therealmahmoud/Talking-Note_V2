@@ -3,9 +3,19 @@ import requests
 import os
 
 app = Flask(__name__) # flask app intialization
+app.config['SECRET_KEY'] = "hamada"
 
+def login_required(f):
+    def decorated_function(*args, **kwargs):
+        if 'user_id' not in session:
+            # If the user is not logged in, redirect to the login page
+            return redirect(url_for('login'))
+        return f(*args, **kwargs)
+    decorated_function.__name__ = f.__name__
+    return decorated_function
 
 @app.route('/', strict_slashes=False)
+@login_required
 def home():
     """
     This function is a route handler for the root URL ('/').
@@ -29,6 +39,7 @@ def login():
             'password': password
         })
         if response.status_code == 200:
+            session['user_id'] = response.json()['user_id']
             return redirect('/')
         else:
             return 'Login failed', 401

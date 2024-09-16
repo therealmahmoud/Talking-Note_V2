@@ -87,9 +87,7 @@ def login():
     user = mongo.db.users.find_one({'username': username})
 
     if user and check_password_hash(user['password'], password):
-        session['user_id'] = str(user['_id'])
-        print(f"session user_id {session['user_id']} and _id {str(user['_id'])}")
-        return jsonify({'message': 'Login successful'}), 200
+        return jsonify({'message': 'Login successful', 'user_id': str(user['_id'])}), 200
     return jsonify({'message': 'Invalid credentials'}), 401
 
 
