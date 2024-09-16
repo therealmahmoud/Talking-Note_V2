@@ -37,27 +37,6 @@ def not_found(error):
     return make_response(jsonify({'error': "Not found"}), 404)
 
 
-class RegisterForm(FlaskForm):
-    username = StringField(validators=[InputRequired(), Length(min=4, max=25)],
-                           render_kw={"placeholder": "Username"})
-    password = PasswordField(validators=[InputRequired(), Length(min=4, max=25)],
-                           render_kw={"placeholder": "Password"})
-    submit = SubmitField("Register")
-
-    def validate_username(self, username):
-        existing_user = mongo.db.users.find_one({"username": username.data})
-        if existing_user:
-            raise ValidationError('Username already exists!')
-
-# Login form
-class LoginForm(FlaskForm):
-    username = StringField(validators=[InputRequired(), Length(min=4, max=25)],
-                           render_kw={"placeholder": "Username"})
-    password = PasswordField(validators=[InputRequired(), Length(min=4, max=25)],
-                           render_kw={"placeholder": "Password"})
-    submit = SubmitField("Login")
-
-
 @app.route('/register', methods=['POST'])
 def register():
     data = request.get_json()
