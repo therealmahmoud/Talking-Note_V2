@@ -1,10 +1,10 @@
-from flask import Flask, make_response, jsonify, request, abort, render_template, url_for, redirect
+from flask import Flask, make_response, jsonify, request, abort, render_template, url_for, redirect, session
 from flask_sqlalchemy import SQLAlchemy
 import logging
 from flask_cors import CORS
 import google.generativeai as genai
 from markdown import markdown
-from flask_login import UserMixin
+from flask_login import LoginManager, login_user, current_user, login_required, logout_user, UserMixin
 from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, SubmitField
 from wtforms.validators import InputRequired, Length, ValidationError
@@ -17,8 +17,15 @@ genai.configure(api_key='AIzaSyDCKpjPKsWbDdlBtnQItbSwxkeHlSUqefE')  # api key fo
 model = genai.GenerativeModel('gemini-1.5-flash') # assign default model
 chat = model.start_chat(history=[]) # create chat history
 app = Flask(__name__) # Flask
-CORS(app)  # Enable CORS for all routes
+app.config['SECRET_KEY'] = os.urandom(24)
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+app.config['SESSION_COOKIE_PATH'] = '/'
+app.config['SESSION_COOKIE_SECURE'] = False
+CORS(app, supports_credentials=True)
 
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = 'login'
 
 app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://flask_user:flask_password@mysql/flask_db'
 logging.basicConfig() # logging
@@ -26,6 +33,11 @@ logging.getLogger('sqlalchemy.engine').setLevel(logging.INFO) # logging
 
 db = SQLAlchemy(app)
 
+
+@login_manager.user_loader
+def load_user(user_id):
+    # This will load a user from the database by the user ID stored in the session
+    return User.query.get(int(user_id))
 
 @app.errorhandler(404)
 def not_found(error):
@@ -85,6 +97,7 @@ class Notes(db.Model):
     content (str): The content of the note.
     created_at (datetime): The timestamp when the note was created.
     updated_at (datetime): The timestamp when the note was last updated.
+    user_id (int): The ID of the user who created the note.
     """
     __tablename__ = 'notes'
     notes_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
@@ -93,6 +106,10 @@ class Notes(db.Model):
     created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
     updated_at = db.Column(db.DateTime, default=db.func.current_timestamp(),
                            onupdate=db.func.current_timestamp())
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    
+    # Relationship between Notes and User
+    user = db.relationship('User', backref=db.backref('notes', lazy=True))
 
 with app.app_context():
     db.create_all() # creates the query objects before starting API's
@@ -123,6 +140,7 @@ def login():
     user = User.query.filter_by(username=username).first()
 
     if user and user.check_password(password):
+        login_user(user)  # Log the user in and set up the session
         return jsonify({'message': 'Login successful'}), 200
     return jsonify({'message': 'Invalid credentials'}), 401
 
@@ -131,39 +149,43 @@ def logout():
     return jsonify({'message': 'Logged out successfully'}), 200
 
 
+
 @app.route('/notes', methods=['GET'], strict_slashes=False)
 def get_all_notes():
     """
-    Retrieve all notes from the database.
+    Retrieve all notes for the current user.
     Returns:
-    flask.Response: A JSON response containing a list of all notes,
+    flask.Response: A JSON response containing a list of the user's notes,
     each represented as a dictionary with keys 'notes_id', 'title', 'content',
     'created_at', and 'updated_at'.
     HTTP status code 200 if the notes are retrieved successfully.
     """
-    all_notes = Notes.query.all()
-    lis = []
-    mynotes = "notes: "
-    i = 1
-    for note in all_notes:
-        list_notes = {
-                'notes_id': note.notes_id,
-                'title': note.title,
-                'content': note.content,
-                'created_at': note.created_at,
-                'updated_at': note.updated_at
-            }
-        mynotes += str(i) + "- " + note.title + ': "' + note.content + '"'
-        lis.append(list_notes)
-        i = i + 1
-    chat.send_message("i will send some notes to use it in future questions\n" + mynotes)
-    return jsonify(lis), 200
+    if current_user.is_authenticated:
+        all_notes = Notes.query.filter_by(user_id=current_user.id).all()
+        lis = []
+        mynotes = "notes: "
+        i = 1
+        for note in all_notes:
+            list_notes = {
+                    'notes_id': note.notes_id,
+                    'title': note.title,
+                    'content': note.content,
+                    'created_at': note.created_at,
+                    'updated_at': note.updated_at
+                }
+            mynotes += str(i) + "- " + note.title + ': "' + note.content + '"'
+            lis.append(list_notes)
+            i = i + 1
+        chat.send_message("i will send some notes to use it in future questions\n" + mynotes)
+        return jsonify(lis), 200
+    else:
+        return jsonify({'message': 'User not authenticated'}), 401
 
 
 @app.route('/notes/<int:id>', methods=['GET'], strict_slashes=False)
 def get_notes_id(id):
     """
-    Retrieve a note by its ID.
+    Retrieve a note by its ID for the current user.
 
     Parameters:
     id (int): The ID of the note to be retrieved.
@@ -171,38 +193,44 @@ def get_notes_id(id):
     Returns:
     flask.Response: A JSON response containing the note's details
     with HTTP status code 200 if the note is found.
-    flask.abort: An HTTP 404 error if the note with the given ID doesn't exist.
+    flask.abort: An HTTP 404 error if the note with the given ID doesn't exist or
+    if the current user does not own the note.
     """
-    note = Notes.query.filter_by(notes_id=id).first()
-    if note:
-        return jsonify({
-            'notes_id': note.notes_id,
-            'title': note.title,
-            'content': note.content,
-            'created_at': note.created_at,
-            'updated_at': note.updated_at
-        }), 200
+    if current_user.is_authenticated:
+        note = Notes.query.filter_by(notes_id=id, user_id=current_user.id).first()
+        if note:
+            return jsonify({
+                'notes_id': note.notes_id,
+                'title': note.title,
+                'content': note.content,
+                'created_at': note.created_at,
+                'updated_at': note.updated_at
+            }), 200
+        else:
+            return abort(404)
     else:
-        return abort(404)
+        return jsonify({'message': 'User not authenticated'}), 401
 
 
 @app.route('/notes', methods=['POST'], strict_slashes=False)
 def add_note():
     """
-    Add a new note to the database.
+    Add a new note for the current user to the database.
     Returns:
     flask.Response: A JSON response with a success message
-    and HTTP status code 201
-    if the note is added successfully.
+    and HTTP status code 201 if the note is added successfully.
     """
-    data = request.get_json()
-    title = data.get('title')
-    content = data.get('content')
+    if current_user.is_authenticated:
+        data = request.get_json()
+        title = data.get('title')
+        content = data.get('content')
 
-    new_note = Notes(title=title, content=content)
-    db.session.add(new_note)
-    db.session.commit()
-    return jsonify({'message': 'Note added successfully!'}), 201
+        new_note = Notes(title=title, content=content, user_id=current_user.id)
+        db.session.add(new_note)
+        db.session.commit()
+        return jsonify({'message': 'Note added successfully!'}), 201
+    else:
+        return jsonify({'message': 'User not authenticated'}), 401
 
 
 @app.route('/notes/<int:id>', methods=['DELETE'], strict_slashes=False)
