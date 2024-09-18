@@ -5,5 +5,4 @@ flask-cors
 google-generativeai
 markdown
 werkzeug
-flask_mongoalchemy
 pyOpenSSL
