@@ -51,17 +51,6 @@ services:
     networks:
       - mongo_network
 
-  nginx:
-    image: nginx:latest
-    ports:
-      - "8000:80"
-    volumes:
-      - ./nginx.conf:/etc/nginx/nginx.conf
-    depends_on:
-      - web_app
-    networks:
-      - mongo_network
-
 volumes:
   mongo_data:
 
