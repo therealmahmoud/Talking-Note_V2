@@ -1,4 +1,6 @@
-# Talking note
+# Talking note V2
+This is the updated version of Talking-Note.
+We have added new features like User Authentication and converting from SQL (MySQL) to NoSQL (MongoDB) for better and faster user experience.
 Managing your notes in "TalkingNote" is designed to be intuitive and efficient. Creating a note is as simple as typing your thoughts into a clean, user-friendly interface and hitting save, instantly
 storing the note with a title and content for creation. Deleting notes is straightforward, with options to remove notes swiftly, ensuring clutter-free
 organization. This seamless management system 
