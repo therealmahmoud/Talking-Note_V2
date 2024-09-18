@@ -1,8 +1,6 @@
 # Talking note
 Managing your notes in "TalkingNote" is designed to be intuitive and efficient. Creating a note is as simple as typing your thoughts into a clean, user-friendly interface and hitting save, instantly
-storing the note with a title and content for creation and
-updates. Deleting notes is straightforward, with options to remove
-single or multiple notes swiftly, ensuring clutter-free
+storing the note with a title and content for creation. Deleting notes is straightforward, with options to remove notes swiftly, ensuring clutter-free
 organization. This seamless management system 
 ensures that your notes are always accessible, organized, and up
 -to-date, making it effortless to keep track of your 
@@ -54,7 +52,7 @@ We are committed to a fully transparent development process and **highly appreci
 
 ## 📫&nbsp; Found a bug? Missing a specific feature?
 
-Feel free to **file a new issue** with a respective title and description on the the [therealmahmoud](https://github.com/therealmahmoud) OR [mostafaturky1](https://github.com/mostafaturky1) repository. If you already found a solution to your problem, **we would love to review your pull request** !
+Feel free to **file a new issue** with a respective title and description on the [therealmahmoud](https://github.com/therealmahmoud) OR [mostafaturky1](https://github.com/mostafaturky1) repository. If you already found a solution to your problem, **we would love to review your pull request** !
 
 
 ## ✅&nbsp; Requirements
